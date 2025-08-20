@@ -1,0 +1,116 @@
+/** @param {NS} ns */
+export async function main(ns, restartScripts = ns.args[0]) {
+
+  let listSvrs = new Array();
+  let listAlreadyAdded = new Array('darkweb', 'home');
+  let filesToCopy = new Array('./doActions.js', './actOnTarget.js');
+
+  ns.rm("./svrTree.txt");
+  ns.write("./svrTree.txt", '--------------Server Tree--------------\n', "w");
+  ns.write("./svrTree.txt", '---------------------------------------\n', "a");
+
+  getServers(ns, "home", listSvrs, listAlreadyAdded);
+
+  ns.rm("./svrLog.txt");
+  ns.write("./svrLog.txt", '--------------Server Info--------------\n', "w");
+  ns.write("./svrLog.txt", '---------------------------------------\n', "a");
+
+  ns.rm("./svrNeedsInterest.txt");
+  ns.write("./svrNeedsInterest.txt", '--------------Server Info--------------\n', "w");
+  ns.write("./svrNeedsInterest.txt", '---------------------------------------\n', "a");
+
+  let x = 0;
+  do {
+
+    let server = ns.getServer(listSvrs[x]);
+    let threads = Math.floor(server.maxRam / ns.getScriptRam('./doActions.js', server.hostname));
+
+    let myHackingLvl = ns.getHackingLevel();
+    let srvHackingLevel = server.requiredHackingSkill;
+
+    if (!server.hasAdminRights) {
+
+      let p = server.numOpenPortsRequired;
+
+      (p >= 1 && ns.fileExists('./BruteSSH.exe') && !server.sshPortOpen) ? await ns.brutessh(server.hostname) : 0;
+      (p >= 2 && ns.fileExists('./FTPCrack.exe') && !server.ftpPortOpen) ? await ns.ftpcrack(server.hostname) : 0;
+      (p >= 3 && ns.fileExists('./relaySMTP.exe') && !server.smtpPortOpen) ? await ns.relaysmtp(server.hostname) : 0;
+      (p >= 4 && ns.fileExists('./HTTPWorm.exe') && !server.httpPortOpen) ? await ns.httpworm(server.hostname) : 0;
+      (p >= 5 && ns.fileExists('./SQLInject.exe') && !server.sqlPortOpen) ? await ns.sqlinject(server.hostname) : 0;
+      (server.openPortCount >= p) ? await ns.nuke(server.hostname) : 0;
+    } else {
+      await ns.scp(filesToCopy, server.hostname);
+
+      if (restartScripts != null) {
+        await ns.scriptKill('./doActions.js', server.hostname);
+        await ns.rm('./doActions.js', server.hostname);
+        await ns.rm('./actOnTarget.js', server.hostname);
+        await ns.scp(filesToCopy, server.hostname);
+      }
+
+      let areActionsRunning = ns.scriptRunning('./doActions.js', server.hostname);
+      let threads = Math.floor(server.maxRam / ns.getScriptRam('./doActions.js', server.hostname));
+
+      (!areActionsRunning && threads > 0 /*&& myHackingLvl >= srvHackingLevel*/) ? _
+        & await ns.exec('doActions.js', server.hostname, null, 1, threads) : 0;
+
+    }
+
+    await ns.write("./svrLog.txt", '----------' + server.hostname + ' ----------\n', "a");
+    await ns.write("./svrLog.txt", 'RAM MAX: ' + server.maxRam + '\n', "a");
+    await ns.write("./svrLog.txt", 'RAM USED: ' + server.ramUsed + '\n', "a");
+    await ns.write("./svrLog.txt", 'RAM REMAINING: ' + (server.maxRam - server.ramUsed) + '\n', "a");
+    await ns.write("./svrLog.txt", 'HACK REQUIRED:' + srvHackingLevel + '\n', "a");
+    await ns.write("./svrLog.txt", 'HACK LEVEL: ' + myHackingLvl + '\n', "a");
+    await ns.write("./svrLog.txt", 'HACK NEEDED: ' + (srvHackingLevel - myHackingLvl) + '\n', "a");
+    await ns.write("./svrLog.txt", 'PORTS REQUIRED: ' + server.numOpenPortsRequired + '\n', "a");
+    await ns.write("./svrLog.txt", 'PORTS OPEN: ' + server.openPortCount + '\n', "a");
+    await ns.write("./svrLog.txt", 'PORTS NEEDED: ' + (server.numOpenPortsRequired - server.openPortCount) + '\n', "a");
+
+
+    //let ramReport = (server.maxRam - server.ramUsed);
+    let hackReport = (srvHackingLevel - myHackingLvl);
+    let portReport = (server.numOpenPortsRequired - server.openPortCount);
+
+    if (hackReport > 0 || portReport > 0) {
+      await ns.write("./svrNeedsInterest.txt", '----------' + server.hostname + ' ----------\n', "a");
+      await ns.write("./svrNeedsInterest.txt", 'NEED HACKING: ' + hackReport + '\n', "a");
+      await ns.write("./svrNeedsInterest.txt", 'NEED PORTS: ' + portReport + '\n', "a");
+    }
+
+    x += 1;
+  } while (x < listSvrs.length);
+
+}
+
+function getServers(ns, svrName, listSvrs, listAlreadyAdded) {
+
+  let newServers = ns.scan(svrName);
+
+  ns.write("./svrTree.txt", svrName + ": " + newServers + '\n', "a");
+
+  let x = 0;
+  do {
+    let server = newServers[x];
+
+    if (!listSvrs.includes(server) && !listAlreadyAdded.includes(server)) {
+      listSvrs.push(newServers[x]);
+      listAlreadyAdded.push(newServers[x]);
+
+      getServers(ns, newServers[x], listSvrs, listAlreadyAdded);
+    }
+    x += 1;
+  } while (x < newServers.length);
+
+  return null;
+}
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,37 @@
+import * as allActions from './actOnTarget.js';
+
+//may run script from editor without passing variables once
+//run from terminal or call script function for threads/permanent running
+export async function main(ns, doForever = ns.args[0], numThreads = ns.args[1]) {
+
+  //server state vars
+  let valHost = ns.getHostname();
+  let valMinCashToHack = ns.getServerMoneyAvailable(valHost);
+  let valMinSecurity = ns.getServerMinSecurityLevel(valHost);
+
+  //self variables
+  let threads = (numThreads = null) ? 1 : numThreads;
+
+  do {
+
+    //continue getting state of server
+    let valCurrentMoney = ns.getServerMoneyAvailable(valHost);
+    let valCurrentSecurity = ns.getServerSecurityLevel(valHost);
+    let valSvrHackLevel = ns.getServerRequiredHackingLevel(valHost);
+    let valOwnHackLevel = ns.getHackingLevel;
+
+    let canHack = valOwnHackLevel - valSvrHackLevel;
+
+    //actually do things. weaken as needed and hack/grow depending on hack requirement/money
+
+    if (valCurrentSecurity > valMinSecurity + 5) {
+      await allActions.main(ns, valHost, threads, "weaken");
+    } else if (valCurrentMoney < valMinCashToHack * .9 || canHack < 0 ) {
+      await allActions.main(ns, valHost, threads, "grow");
+    } else {
+      await allActions.main(ns, valHost, threads, "hack");
+    }
+
+  } while (doForever != null);
+
+}

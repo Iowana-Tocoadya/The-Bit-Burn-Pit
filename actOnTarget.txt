@@ -1,0 +1,25 @@
+//determine the actions on a given server.
+//currently, only hack, grow, or weakening
+export async function main(ns, target = ns.args[0], threads = ns.args[1], action = ns.args[2]) {
+  
+  switch(action) {
+    case "hack":
+       console.debug("hacking...");
+        await ns.hack(target, { threads });
+    break;
+
+    case "grow":
+      console.debug("growing...");
+      await ns.grow(target, { threads });
+    break;
+
+    case "weaken":
+      console.debug("weakening...");
+      await ns.weaken(target, { threads });
+    break;
+
+    default:
+      console.error("Need hack, grow, or weaken as action type.");
+    break;
+  } 
+}
